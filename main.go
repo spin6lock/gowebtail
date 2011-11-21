@@ -2,14 +2,14 @@ package main
 
 import (
 	"flag"
-	"http"
 	"log"
-	"template"
+	"net/http"
+	"text/template"
 	"websocket"
 )
 
 type message struct {
-	text []byte
+	text string
 }
 
 type client struct {
@@ -56,19 +56,19 @@ func (c *client) shutdown() {
 func (c *client) reader() {
 	defer c.shutdown()
 	for {
-		text := make([]byte, 256)
-		n, err := c.ws.Read(text)
+		var text string
+		err := websocket.Message.Receive(c.ws, &text)
 		if err != nil {
 			break
 		}
-		h.messages <- message{text[:n]}
+		h.messages <- message{text}
 	}
 }
 
 func (c *client) writer() {
 	defer c.shutdown()
 	for m := range c.messages {
-		_, err := c.ws.Write(m.text)
+		err := websocket.Message.Send(c.ws, m.text)
 		if err != nil {
 			break
 		}
