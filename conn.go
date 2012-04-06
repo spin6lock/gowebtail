@@ -1,7 +1,7 @@
 package main
 
 import (
-	"websocket"
+	"code.google.com/p/go.net/websocket"
 )
 
 type connection struct {
