@@ -1,0 +1,126 @@
+Implementing Chat with WebSockets and Go
+
+Gary Burd
+@gburd
+
+* Introduction
+
+This example application shows how to use
+[[http://www.websockets.org/][WebSockets]], the 
+[[http://golang.org/][Go programming language]] and 
+[[http://jquery.com/][jQuery]] to create a simple
+web chat application. 
+
+* Running the example
+
+The example requires a working Go development environment. The
+[[http://golang.org/doc/install.html][Getting Started]] page describes
+how to install the development environment. 
+
+Once you have Go up and running, you can download, build and run the example
+using the following commands.
+
+        go get code.google.com/p/go.net/websocket
+        git clone git://gist.github.com/1316852.git websocket-example
+        cd websocket-example
+        go run *.go
+
+Open http://127.0.0.1:8080/ in a websocket capable browser to try the application.
+
+* Server
+
+The server application is implemented using the 
+[[http://golang.org/pkg/net/http/][http]] package included with the Go
+distribution and the Go Project's 
+[[http://go.pkgdoc.org/code.google.com/p/go.net/websocket][websocket]] package.
+
+The application defines two types, `connection` and
+`hub`. The server creates an instance of the `connection`
+type for each webscocket connection. Connections act as an intermediary
+between the websocket and a single instance of the `hub` type. The
+hub maintains a set of registered connections and broadcasts messages to the
+connections.
+
+The application runs one goroutine for the hub and two goroutines for each
+connection. The goroutines communicate with each other using channels. The hub
+has channels for registering connections, unregistering connections and
+broadcasting messages. A connection has a buffered channel of outbound messages.
+One of the connection's goroutines reads messages from this channel and writes
+the messages to the webscoket. The other connection goroutine reads messages
+from the websocket and sends them to the hub.
+
+Here's the code for the `hub` type. A description of the code follows.
+
+.code hub.go
+
+The application's `main` function starts the hub `run`
+method as a goroutine. Connections send requests to the hub using the
+`register`, `unregister` and `broadcast`
+channels.
+
+The hub registers connections by adding the connection pointer as a key in
+the `connections` map. The map value is always `true`.
+
+The unregister code is a little more complicated. In addition to deleting
+the connection pointer from the `connections` map, the hub closes
+the connection's `send` channel to signal the connection that no
+more messages will be sent to the connection.
+
+The hub handles messages by looping over the registered connections and
+sending the message to the connection's `send` channel. If the
+connection's `send` buffer is full, then the hub assumes that
+the client is dead or stuck. In this case, the hub unregisters the connection
+and closes the websocket. 
+
+Here's the code related to the `connection` type. 
+
+.code conn.go
+
+The `wsHandler` function is registered by the application's
+`main` function as a 
+  [[http://golang.org/pkg/websocket/#Handler][websocket handler]]. The
+function creates a connection object, registers the connection with the hub and
+schedules the connection to be unregistered using a 
+[[http://weekly.golang.org/doc/effective_go.html#defer][defer]] statement.
+
+Next, the `wsHandler` function starts the connection's
+`writer` method as a goroutine. The `writer` method
+transfers  messages from the connection's `send` channel to the
+websocket. The `writer` method exits when the channel is closed by
+the hub or there's an error writing to the websocket.
+
+Finally, the `wsHandler` function calls the connection's
+`reader` method. The `reader` method transfers inbound
+messages from the websocket to the hub. 
+
+The remainder of the server code follows:
+
+.code main.go
+
+The application's `main` function starts the hub goroutine. Next,
+the main function registers handlers for the home page and websocket
+connections. Finally, the main function starts the HTTP server. 
+
+* Client
+
+The client is implemented in a single HTML file.
+
+.code home.html
+
+The client uses [[http://jquery.com/][jQuery]] to manipulate
+objects in the browser.
+
+On document load, the script checks for websocket functionality in the
+browser. If websocket functionality is available, then the script opens a
+connection to the server and registers a callback to handle messages from the
+server. The callback appends the message to the chat log using the
+`appendLog` function.
+
+To allow the user to manually scroll through the chat log without interruption
+from new messages, the `appendLog` function checks the scroll position before
+adding new content. If the chat log is scrolled to the bottom, then the
+function scrolls new content into view after adding the content. Otherwise,
+the scroll position is not changed.
+
+The form handler writes the user input to the websocket and clears the input
+field.
