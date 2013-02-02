@@ -2,6 +2,8 @@ package main
 
 import (
 	"code.google.com/p/go.net/websocket"
+	"time"
+	"fmt"
 )
 
 type connection struct {
@@ -10,18 +12,6 @@ type connection struct {
 
 	// Buffered channel of outbound messages.
 	send chan string
-}
-
-func (c *connection) reader() {
-	for {
-		var message string
-		err := websocket.Message.Receive(c.ws, &message)
-		if err != nil {
-			break
-		}
-		h.broadcast <- message
-	}
-	c.ws.Close()
 }
 
 func (c *connection) writer() {
@@ -34,10 +24,18 @@ func (c *connection) writer() {
 	c.ws.Close()
 }
 
+func (c *connection) timeTeller() {
+	t := time.Tick(1 * time.Second)
+	for now := range t{
+		fmt.Println(now)
+		h.broadcast <- now.String()
+	}
+}
+
 func wsHandler(ws *websocket.Conn) {
 	c := &connection{send: make(chan string, 256), ws: ws}
 	h.register <- c
 	defer func() { h.unregister <- c }()
 	go c.writer()
-	c.reader()
+	go c.timeTeller()
 }
