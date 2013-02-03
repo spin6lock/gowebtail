@@ -1,15 +1,15 @@
 package main
 
 import (
-	"os"
-	"log"
-	"fmt"
-	"flag"
-	"strings"
-	"net/http"
-	"text/template"
-	"github.com/howeyc/fsnotify"
 	"code.google.com/p/go.net/websocket"
+	"flag"
+	"fmt"
+	"github.com/howeyc/fsnotify"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"text/template"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
@@ -30,8 +30,8 @@ func MonitorMultiFiles(names []string, out chan []string,
 		PrintMultiLines(result)
 		MonitorFile(name, out, watcher)
 	}
-	for{
-		select{
+	for {
+		select {
 		case lines := <-out:
 			content := strings.Join(lines, "\n")
 			fmt.Print(content)
@@ -51,7 +51,7 @@ var usage = func() {
 func main() {
 	flag.Usage = usage
 	flag.Parse()
-	if len(flag.Args()) < 1{
+	if len(flag.Args()) < 1 {
 		usage()
 	}
 	out := make(chan []string)

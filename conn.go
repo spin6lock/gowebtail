@@ -2,8 +2,8 @@ package main
 
 import (
 	"code.google.com/p/go.net/websocket"
-	"time"
 	"fmt"
+	"time"
 )
 
 type connection struct {
@@ -16,7 +16,7 @@ type connection struct {
 
 func (c *connection) writer() {
 	for {
-		select{
+		select {
 		case message := <-c.send:
 			err := websocket.Message.Send(c.ws, message)
 			if err != nil {
@@ -29,7 +29,7 @@ func (c *connection) writer() {
 
 func (c *connection) timeTeller() {
 	t := time.Tick(2 * time.Second)
-	for now := range t{
+	for now := range t {
 		fmt.Println(now)
 		h.broadcast <- now.String()
 	}
