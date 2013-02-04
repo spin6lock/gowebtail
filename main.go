@@ -12,8 +12,9 @@ import (
 	"text/template"
 )
 
+var homeHtml = string(home_html())
 var addr = flag.String("addr", ":8080", "http service address")
-var homeTempl = template.Must(template.ParseFiles("home.html"))
+var homeTempl = template.Must(template.New("homeHtml").Parse(homeHtml))
 
 func homeHandler(c http.ResponseWriter, req *http.Request) {
 	homeTempl.Execute(c, req.Host)
